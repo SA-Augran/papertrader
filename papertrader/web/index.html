@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Papertrader · 模拟盘</title><link rel="stylesheet" href="/app.css">
+<script defer src="/vendor/echarts.min.js"></script><script defer src="/app.js"></script></head>
+<body data-scheme="b" data-tick="a">
+<div id="message" role="status" hidden></div>
+<div class="connection-veil" id="connect"><form class="rvg connection-card" id="connectForm">
+<div class="eyebrow">PAPERTRADER / LOCAL ACCOUNT</div><h1>连接你的模拟盘</h1>
+<p>使用启动服务时显示的本机访问凭据。通过启动链接打开时会自动连接。</p>
+<label for="token">账户访问凭据</label><input id="token" type="password" autocomplete="off" spellcheck="false" required>
+<button class="btn" type="submit">连接账户</button><p class="dim" id="connectError" role="alert"></p>
+</form></div>
+<div id="loadbar"></div>
+
+<!-- ================= 顶栏 ================= -->
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">P</div>
+    <div class="bt">
+      <div class="w">STUDIO <em>·</em> 模拟盘</div>
+      <div class="s">AGENT PAPER TRADING</div>
+    </div>
+  </div>
+  <div class="acct" id="acct"></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-v="dash">看板</button>
+    <button class="tab" data-v="journal">流水</button>
+    <button class="tab" data-v="growth">成长</button>
+    <button class="tab" data-v="review">复核</button>
+    <button class="tab" data-v="about">关于</button>
+  </nav>
+  <button class="chatbtn" id="refresh"><span class="dot"></span>刷新账户</button>
+</header>
+
+<!-- ================= 行情 ticker ================= -->
+<div class="ticker"><div class="rail" id="tickerRail"></div></div>
+
+<main class="stage scroll" id="stage">
+<div class="wrap">
+
+  <!-- ================= 视图 1：看板 ================= -->
+  <section class="view on" id="v-dash">
+    <div class="disp">
+      <div class="t">模拟盘</div>
+      <div class="sub">
+        <span class="s">观察一个 Agent，怎样经营自己的模拟资金</span>
+        <span class="mood" id="moodBanner" title="账户运行状态"><i class="md"></i><span class="txt" id="moodText">…</span></span>
+      </div>
+    </div>
+
+    <div class="hero" id="stats"></div>
+
+    <div class="grid" style="margin-top:22px">
+      <div class="glasscard">
+        <div class="chart-title">
+          <span class="t">资产曲线</span>
+          <span class="legend-inline">
+            <span class="li"><span class="sw"></span>总资产 · 左轴元</span>
+            <span class="li"><span class="sw dash"></span>现金占比 · 右轴%</span>
+          </span>
+        </div>
+        <div class="chartbox" id="navChart"></div>
+        <p class="rv-summary nav-summary" id="navSummary"></p>
+      </div>
+      <div class="glasscard poscard" id="posBox">
+        <div class="chart-title">
+          <span class="t">持仓</span>
+          <span class="legend-inline"><span class="li" id="posCount"></span></span>
+        </div>
+        <div class="pboard" id="posBoard"></div>
+        <div class="posfoot" id="posFoot"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="t">自选快照</span><span class="sp"></span>
+      <span class="cnt">WATCHLIST</span>
+    </div>
+    <div class="chips wl-inline" id="chips"></div>
+  </section>
+
+  <!-- ================= 视图 2：流水 ================= -->
+  <section class="view" id="v-journal">
+    <div class="disp">
+      <div class="t">流水</div>
+    </div>
+    <div class="filters" id="jFilters">
+      <button class="fchip on" data-f="all">全部</button>
+      <button class="fchip" data-f="buy">买</button>
+      <button class="fchip" data-f="sell">卖</button>
+      <button class="fchip" data-f="hold">观察</button>
+      <button class="fchip" data-f="rejected">拦截</button>
+    </div>
+    <div id="jList"></div>
+  </section>
+
+  <!-- ================= 视图 3：成长 ================= -->
+  <section class="view" id="v-growth">
+    <div class="disp">
+      <div class="t">成长</div>
+      <div class="sub"><span class="s">已结束的持仓留下经验，正在持有的保留观察</span></div>
+    </div>
+
+    <div class="sec"><span class="t">当前生效规则</span><span class="sp"></span></div>
+    <ul class="rules" id="rules"></ul>
+
+    <div class="growth-note">
+      <div class="gn-k">GROWTH ·  Rule adaptation</div>
+      <p>样本不足时保留当前纪律；每次调整都留有日期与前后数值。</p>
+    </div>
+  </section>
+
+  <!-- ================= 视图 5：实验复核（同源数据） ================= -->
+  <section class="view" id="v-review">
+    <div class="disp">
+      <div class="t">复核</div>
+      <div class="sub"><span class="s">从当天的判断，看到平仓的结果</span></div>
+    </div>
+    <div class="rv-tabs" id="rvTabs">
+      <button class="rvt on" data-p="chain">决策回放</button>
+      <button class="rvt" data-p="recheck">单因素复核</button>
+      <button class="rvt" data-p="curve">成长脉络</button>
+    </div>
+    <div class="rv-pickbar" aria-label="复核对象选择">
+      <label>交易日 <select id="rcDate" aria-label="选择复核日期"></select></label>
+      <label>决策 <select id="rcDecision" aria-label="选择复核决策"></select></label>
+    </div>
+
+    <!-- 成长脉络 -->
+    <div class="rv-pane" id="rvp-curve">
+      <div class="rv-hero rvg" id="rvKpi"></div>
+      <div class="rv-head" style="margin-top:28px"><span class="k">01 / RULES</span><span class="t">三个自适应阈值 · 数值与变化记录同源</span></div>
+      <div class="rv-specs" id="rvSpecs"></div>
+      <div class="rv-fixed" id="rvFixed"></div>
+      <div class="rv-note">单股上限、首仓上限、追高线按已结束持仓的盈亏保守微调。曲线展示实际保存的参数版本；样本不足、尚未改变时明确显示未调整。</div>
+      <div class="rv-head" style="margin-top:30px"><span class="k">02 / NAV</span><span class="t">资产曲线 · 与看板同源</span></div>
+      <div class="glasscard rv-navcard" style="margin-top:6px">
+        <div class="chart-title"><span class="t">账户资产 · 与看板同源</span>
+          <div class="rv-pager" id="rvNavScale" aria-label="资产曲线范围">
+            <button type="button" class="rv-control" data-span="10">近 10 日</button>
+            <button type="button" class="rv-control" data-span="30">近 30 日</button>
+            <button type="button" class="rv-control" data-span="0">全部</button>
+          </div>
+        </div>
+        <div class="chartbox" id="rvNavChart"><canvas role="img" aria-label="账户资产曲线"></canvas></div>
+        <p class="rv-summary" id="rvNavSummary"></p>
+      </div>
+    </div>
+
+    <!-- 决策回放 -->
+    <div class="rv-pane on" id="rvp-chain">
+      <div class="rv-board">
+        <div class="rv-rail" id="rvRail">
+          <div class="rv-railhead">
+            <span class="t">仓位变动刻度</span>
+            <span class="rv-railmeta">
+              <span class="rv-demo" id="rvDemo" hidden>离线示例</span>
+              <span class="s" id="rvRailRange">—</span>
+              <button type="button" class="rv-control" id="rvPrev" aria-label="前两周">←</button>
+              <button type="button" class="rv-control" id="rvLatest">最新</button>
+              <button type="button" class="rv-control" id="rvNext" aria-label="后两周">→</button>
+            </span>
+          </div>
+          <div class="rv-railbase" id="rvRailBase"></div>
+          <div class="rv-daylabels" id="rvRailDays"></div>
+          <div class="rv-legend">
+            <span><i style="background:rgba(143,184,216,.75)"></i>有买入</span>
+            <span><i style="background:rgba(63,177,131,.65)"></i>有卖出</span>
+            <span><i style="background:rgba(217,98,76,.65)"></i>有拦截</span>
+            <span><i style="background:rgba(199,220,239,.18)"></i>无成交</span>
+          </div>
+        </div>
+        <div class="rv-dayview" id="rvDayView"></div>
+      </div>
+    </div>
+
+    <!-- 单因素复核 -->
+    <div class="rv-pane" id="rvp-recheck">
+      <div class="rv-recheckbar">
+        <div class="rv-subject rvg" id="rvRcTarget"></div>
+        <button class="btn" id="reproduce">复核原判断</button>
+      </div>
+      <div class="rv-swlayout">
+        <div class="rv-swpanel rvg">
+          <div class="rv-head"><span class="k">01 / CHECKS</span><span class="t">检查项 · 点击查看依据</span></div>
+          <div id="rvSwitches"></div>
+          <div class="rv-note" id="rvSwCount" style="margin-top:14px"></div>
+        </div>
+        <div class="rv-ab" id="rvCmp"></div>
+      </div>
+      <div class="rv-verify" id="rvVerdict"></div>
+    </div>
+  </section>
+
+  <!-- ================= 视图 4：关于 ================= -->
+  <section class="view" id="v-about">
+    <div class="disp"><div class="t">关于</div><div class="sub"><span class="s">让成长留下证据，也给自主性留出空间</span></div></div>
+    <div class="about-lead"><div class="mark">一个 <em>AI 伙伴</em>的模拟盘。</div>
+      <p>接入自己的 Agent，让它看行情、选时机、解释买卖，也可以长期观望。系统负责账本、纪律和经验归因，网页呈现经营与改变。</p>
+      <p style="margin-top:12px">规则划定边界，Thompson 采样分配探索机会；完整平仓后才更新经验。复核读取快照，不改写历史。</p>
+    </div>
+    <div class="sec" style="margin-top:36px"><span class="t">账户服务</span><span class="sp"></span></div>
+    <div id="serviceInfo"></div>
+    <div class="setrow"><span class="k">CONTROL</span><span class="v">暂停后不再生成新任务，已有持仓与记录保留。</span><button class="btn" id="pause">暂停</button></div>
+    <div class="setrow" id="sandboxControl" hidden><span class="k">SANDBOX</span><span class="v">使用当前加载的历史行情，按同一套账户流程执行。</span><button class="btn" id="tick">执行一次</button></div>
+    <div class="setrow"><span class="k">CONNECTION</span><span class="v">页面仅连接本机账户服务，访问凭据保存在当前浏览器会话。</span><button class="btn" id="disconnect">断开</button></div>
+    <div class="disclaim"><b>SIMULATED ACCOUNT</b>资金和成交均为模拟。行情来源、日期、费用与执行口径见上方账户信息；历史测试结果不能代表真实收益。本项目用于教育、娱乐与观察。</div>
+  </section>
+
+</div>
+</main>
+</body></html>

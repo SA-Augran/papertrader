@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "papertrader"
+version = "0.3.0"
+description = "A tiny sandbox where an AI character runs its own paper-trading account and grows."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+llm = ["openai>=1.0", "python-dotenv"]
+realmarket = ["baostock"]
+mcp = ["mcp>=1.12,<2; python_version >= '3.11'"]
+
+[tool.setuptools]
+packages = ["papertrader"]
+
+[tool.setuptools.package-data]
+papertrader = [
+    "characters/*.md", "web/index.html", "web/app.css", "web/app.js",
+    "web/assets/bg-snow-deep.jpg", "web/vendor/echarts.min.js",
+    "web/vendor/LICENSE", "web/vendor/NOTICE",
+]
