@@ -1,6 +1,6 @@
 # papertrader
 
-给自己的 AI 伙伴一个可以长期经营的模拟账户。它按真实交易日看行情，自主选择买入、卖出或观望。你可以从看板追到一笔决策，在成长页和复核页观察它怎样遵守纪律，以及过往经历如何影响下一次选择。
+给自己的 AI 伙伴一个可以长期经营的 A 股模拟账户。它按真实交易日看行情，自主选择买入、卖出或观望。你可以在流水里回看它当时的判断，在成长页查看当前生效的交易纪律。每轮持仓全部卖出后，系统会把已实现的净盈亏记回开仓策略，影响以后选择这套打法的机会。
 
 A local paper-trading environment for AI companions and personal agents, with a web dashboard, a decision history, and an optional MCP adapter.
 
@@ -21,7 +21,7 @@ python -m pip install .
 python -m papertrader serve --mode local --sandbox --data-dir ./sandbox-account --open
 ```
 
-网页打开后，到「关于」页点「执行一次」。本地策略会用标注为沙盒的合成行情做一次决策。看板和流水会显示这次活动。
+网页打开后，到「关于」页点「执行一次」。沙盒使用明确标注的合成行情，通过手动触发做一次决策。看板和流水会显示这次活动。界面、字体与图表均使用本地资源，无需 CDN。
 
 ### 使用真实日线
 
@@ -33,6 +33,8 @@ python -m papertrader serve --mode external --data-dir ./account --open
 --open 会在本机打开并登录面板，令牌从地址栏移除并仅保存在浏览器会话。也可手动打开终端显示的 http://127.0.0.1:8322，输入 Account token。保持进程运行，上海时间 19:30 后每 10 分钟检查当日行情，准备任务等待 Agent 提交。
 
 真实行情需要网络。行情缺失或过期时等待并显示错误，服务不会自动切换合成数据。用户提供 CSV 时用 --csv 指定，日期、来源和沙盒状态会显示在面板。
+
+切换模式或数据来源时，请使用新的账户目录。日常经营按真实交易日运行，历史测试用于验证。
 
 ## 接入自己的 Agent
 
@@ -58,16 +60,6 @@ python -m papertrader serve --mode model --data-dir ./account
 启动前将模型密钥配置为环境变量，或按 .env.example 在账户目录创建 .env。主模型默认使用 ZHIPU_API_KEY，备模型使用 DEEPSEEK_API_KEY，可配置地址和模型名。--persona 可指定用户自己的角色文本。没有提供凭据的 model 模式会明确报错。
 
 --mode local 显式使用本地规则。已有 Agent 模式不调用内置语言模型。
-
-## 断网检查安装
-
-```sh
-python -m papertrader serve --mode local --sandbox --data-dir ./sandbox-account
-```
-
-打开同一网页面板，手动执行一次沙盒决策。沙盒使用确定性合成行情，标识清楚，不按真实时间自动交易。切换模式或数据来源要使用新的账户目录。
-
-界面、字体与图表均使用本地资源，无 CDN。历史测试用于验证，日常经营入口保持真实交易节奏。
 
 ## 技术结构
 
